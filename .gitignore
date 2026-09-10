@@ -1,0 +1,14 @@
+/.gradle/
+/.android-sdk/
+/.gradle-home/
+/local.properties
+/commandlinetools.zip
+/.commandlinetools-extract/
+/models/*.gguf
+/models/*.part
+/third_party/llama.cpp-*/
+**/build/
+**/.cxx/
+.idea/
+*.iml
+captures/

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FunASR Subtitle</string>
+    <string name="screen_title">实时系统字幕</string>
+    <string name="screen_subtitle">离线 CPU 识别 · Android 10+</string>
+    <string name="models_title">识别模型</string>
+    <string name="asr_model">导入 SenseVoice 模型</string>
+    <string name="vad_model">导入 FSMN-VAD 模型</string>
+    <string name="performance_title">识别性能</string>
+    <string name="threads_label">CPU 线程数</string>
+    <string name="overlay_title">字幕显示</string>
+    <string name="font_size_label">字号</string>
+    <string name="opacity_label">背景透明度</string>
+    <string name="start_subtitle">开始字幕</string>
+    <string name="stop_subtitle">停止</string>
+    <string name="status_ready">导入模型后即可开始</string>
+    <string name="status_models_ready">模型已就绪，可以开始字幕</string>
+    <string name="status_running">字幕服务正在运行</string>
+    <string name="notification_channel">实时字幕</string>
+    <string name="notification_text">正在识别系统播放音频</string>
+    <string-array name="thread_values">
+        <item>2</item>
+        <item>4</item>
+        <item>6</item>
+        <item>8</item>
+    </string-array>
+</resources>
