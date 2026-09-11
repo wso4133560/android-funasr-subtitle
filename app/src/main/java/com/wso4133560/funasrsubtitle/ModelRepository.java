@@ -1,6 +1,7 @@
 package com.wso4133560.funasrsubtitle;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -38,6 +39,10 @@ final class ModelRepository {
         void onComplete(boolean success, String message);
     }
 
+    interface BundledCallback {
+        void onComplete(boolean success, String message);
+    }
+
     private final Context context;
     private final File directory;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -63,6 +68,73 @@ final class ModelRepository {
     String stateText() {
         return "SenseVoice: " + (isInstalled(Type.SENSEVOICE) ? "已导入" : "缺失")
                 + "\nFSMN-VAD: " + (isInstalled(Type.VAD) ? "已导入" : "缺失");
+    }
+
+    /**
+     * 将 APK assets 中的模型安装到 files/models，供 native 层按普通文件路径 mmap。
+     *
+     * 这里使用临时文件、长度和 SHA256 校验，再原子替换目标文件，避免首次启动中断后
+     * 留下看似存在但不可用的半个模型。已经通过校验的应用目录文件不会重复复制。
+     */
+    void installBundledModels(BundledCallback callback) {
+        new Thread(() -> {
+            try {
+                AssetManager assets = context.getAssets();
+                boolean found = false;
+                for (Type type : Type.values()) {
+                    if (isInstalled(type)) continue;
+                    if (!hasAsset(assets, type)) continue;
+                    found = true;
+                    copyAsset(assets, type);
+                }
+                String message = found ? "内置模型已校验并安装" : "";
+                mainHandler.post(() -> callback.onComplete(true, message));
+            } catch (Exception error) {
+                mainHandler.post(() -> callback.onComplete(false,
+                        error.getMessage() == null ? "内置模型安装失败" : error.getMessage()));
+            }
+        }, "bundled-model-install").start();
+    }
+
+    private boolean hasAsset(AssetManager assets, Type type) {
+        try (InputStream ignored = assets.open("models/" + type.fileName)) {
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void copyAsset(AssetManager assets, Type type) throws Exception {
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IllegalStateException("无法创建模型目录");
+        }
+        File part = new File(directory, type.fileName + ".part");
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        long total = 0;
+        try (InputStream input = assets.open("models/" + type.fileName,
+                AssetManager.ACCESS_STREAMING);
+             FileOutputStream output = new FileOutputStream(part)) {
+            byte[] buffer = new byte[1024 * 1024];
+            int read;
+            while ((read = input.read(buffer)) > 0) {
+                output.write(buffer, 0, read);
+                digest.update(buffer, 0, read);
+                total += read;
+            }
+            output.getFD().sync();
+        }
+        if (total != type.size || !toHex(digest.digest()).equals(type.sha256)) {
+            //noinspection ResultOfMethodCallIgnored
+            part.delete();
+            throw new IllegalArgumentException(type.fileName + " 内置模型校验失败");
+        }
+        File target = file(type);
+        if (target.exists() && !target.delete()) {
+            throw new IllegalStateException("无法替换旧模型");
+        }
+        if (!part.renameTo(target)) {
+            throw new IllegalStateException("无法完成内置模型安装");
+        }
     }
 
     void importModel(Uri uri, Type type, ImportCallback callback) {

@@ -43,6 +43,11 @@ android {
         }
     }
 
+    // build.ps1 会把本地 models/*.gguf staged 到这个目录，作为 APK 内置资源。
+    // 目录不提交到 Git，避免模型二进制进入源码仓库；没有运行 build.ps1 时该目录为空，
+    // 因此 Gradle 仍然可以用于只编译程序的快速开发构建。
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/bundled-assets"))
+
     ndkVersion = "27.2.12479018"
 }
 

@@ -20,6 +20,25 @@ $env:ANDROID_SDK_ROOT = $sdkRoot
 $env:GRADLE_USER_HOME = Join-Path $root '.gradle-home'
 Remove-Item Env:HTTP_PROXY, Env:HTTPS_PROXY, Env:ALL_PROXY -ErrorAction SilentlyContinue
 
+# 模型不进 Git，但完整 APK 必须自带模型。先把当前目录中已下载且校验过的模型
+# staged 到 generated assets；Gradle 会把这些文件原样放入 APK，应用首次启动再复制
+# 到可供 native mmap 的私有文件目录。
+$modelRoot = Join-Path $root 'models'
+$bundledModelRoot = Join-Path $root 'app\build\generated\bundled-assets\models'
+$requiredModels = @('sensevoice-small-q8.gguf', 'fsmn-vad.gguf')
+if (Test-Path -LiteralPath $bundledModelRoot) {
+    Remove-Item -LiteralPath $bundledModelRoot -Recurse -Force
+}
+New-Item -ItemType Directory -Path $bundledModelRoot -Force | Out-Null
+foreach ($modelName in $requiredModels) {
+    $source = Join-Path $modelRoot $modelName
+    if (-not (Test-Path -LiteralPath $source)) {
+        throw "Missing model for bundled APK: $source. Run scripts/download-models.ps1 first."
+    }
+    Copy-Item -LiteralPath $source -Destination (Join-Path $bundledModelRoot $modelName)
+}
+Write-Host "Bundled models staged: $bundledModelRoot"
+
 $hostBuild = Join-Path $root 'build\host-tests-make'
 cmake -G 'MinGW Makefiles' -S (Join-Path $root 'tests') -B $hostBuild
 if ($LASTEXITCODE -ne 0) { throw 'Host test configuration failed' }

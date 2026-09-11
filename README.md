@@ -9,7 +9,7 @@ FSMN-VAD 和 SenseVoice Small GGUF 模型完成 CPU 推理，并将结果显示�
 - 单应用进程：Activity、前台服务、音频采集、JNI 推理线程和字幕悬浮层均在默认进程。
 - Android 10+ 系统播放音频采集，支持媒体和游戏用途；源应用禁止捕获时无法取得音频。
 - ARM64 NDK 构建，复用 Windows 版本的 SenseVoice、FSMN-VAD、分段和有界任务队列。
-- 从本机文件导入两个模型并校验 SHA256，不把大型模型提交到 Git。
+- 构建时把本机两个模型放入 APK，首次启动自动校验并安装到应用目录；模型二进制仍不提交到 Git。
 - 可调 CPU 线程数、字幕字号和透明度；最终字幕保存到应用私有目录。
 - 前台服务通知提供停止入口；屏幕锁定、系统撤销投屏或采集失败时主动释放资源。
 
@@ -44,8 +44,10 @@ pwsh -File scripts/download-models.ps1
 pwsh -File scripts/build.ps1
 ```
 
-APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。模型不内置在 APK 中；首次运行时分别选择
-`sensevoice-small-q8.gguf` 和 `fsmn-vad.gguf` 导入。应用私有目录需要约 260 MB 可用空间。
+APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。`scripts/build.ps1` 会从 `models/` 目录
+把 `sensevoice-small-q8.gguf` 和 `fsmn-vad.gguf` 打包进 APK，首次启动时自动校验并安装，APK
+预计约 260 MB，应用私有目录还需要约 260 MB 可用空间。若只直接执行 Gradle 而未运行构建脚本，
+则不会生成内置模型资源。
 
 ## 使用
 

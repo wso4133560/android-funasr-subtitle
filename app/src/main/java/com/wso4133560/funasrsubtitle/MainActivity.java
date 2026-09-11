@@ -52,6 +52,11 @@ public final class MainActivity extends Activity {
         });
         configureSettings();
         refreshState();
+        models.installBundledModels((success, message) -> {
+            if (!success) statusText.setText(message);
+            else if (!message.isEmpty()) statusText.setText(message);
+            refreshState();
+        });
     }
 
     @Override
