@@ -5,9 +5,12 @@
 
 class SenseVoice {
 public:
+    using AbortCallback = bool (*)(void*);
     SenseVoice(const std::string& path, int threads);
     ~SenseVoice();
     std::string transcribe(const std::vector<float>& samples);
+    std::string transcribe(const std::vector<float>& samples,
+                           AbortCallback abort_callback, void* abort_data);
     SenseVoice(const SenseVoice&) = delete;
 private:
     struct Impl;

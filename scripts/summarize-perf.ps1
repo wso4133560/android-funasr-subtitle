@@ -3,13 +3,14 @@ $ErrorActionPreference = 'Stop'
 $asr = [System.Collections.Generic.List[object]]::new()
 $dispatch = [System.Collections.Generic.List[double]]::new()
 foreach ($line in Get-Content -LiteralPath $LogPath) {
-    if ($line -match 'asr id=(\d+) final=([01]) audio_ms=([\d.]+) queue_ms=([\d.]+) compute_ms=([\d.]+) capture_drops=(\d+) final_drops=(\d+)') {
+    if ($line -match 'asr id=(\d+) final=([01])(?: cancelled=([01]))? audio_ms=([\d.]+) queue_ms=([\d.]+) compute_ms=([\d.]+) capture_drops=(\d+) final_drops=(\d+)') {
         $asr.Add([pscustomobject]@{
             id = [long]$Matches[1]; final = [int]$Matches[2]
-            audio_ms = [double]::Parse($Matches[3], [cultureinfo]::InvariantCulture)
-            queue_ms = [double]::Parse($Matches[4], [cultureinfo]::InvariantCulture)
-            compute_ms = [double]::Parse($Matches[5], [cultureinfo]::InvariantCulture)
-            capture_drops = [long]$Matches[6]; final_drops = [long]$Matches[7]
+            cancelled = if ($Matches[3]) { [int]$Matches[3] } else { 0 }
+            audio_ms = [double]::Parse($Matches[4], [cultureinfo]::InvariantCulture)
+            queue_ms = [double]::Parse($Matches[5], [cultureinfo]::InvariantCulture)
+            compute_ms = [double]::Parse($Matches[6], [cultureinfo]::InvariantCulture)
+            capture_drops = [long]$Matches[7]; final_drops = [long]$Matches[8]
         })
     } elseif ($line -match 'display id=\d+ final=(?:true|false) dispatch_ms=([\d.]+)') {
         $dispatch.Add([double]::Parse($Matches[1], [cultureinfo]::InvariantCulture))
@@ -30,6 +31,7 @@ function Get-Stats([double[]]$Values) {
 $summary = [ordered]@{
     asr_jobs = $asr.Count
     final_jobs = @($asr | Where-Object final -eq 1).Count
+    cancelled_jobs = @($asr | Where-Object cancelled -eq 1).Count
     compute_ms = Get-Stats @($asr.compute_ms)
     queue_ms = Get-Stats @($asr.queue_ms)
     queued_to_decoded_ms = Get-Stats @($asr | ForEach-Object { $_.queue_ms + $_.compute_ms })

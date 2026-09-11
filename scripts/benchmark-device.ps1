@@ -4,6 +4,7 @@ param(
     [string]$Serial,
     [ValidateRange(1, 16)][int[]]$Threads = @(4),
     [ValidateRange(1, 100)][int]$Repeats = 3,
+    [ValidateRange(0, 60000)][double]$AbortAfterMs,
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Label = (Get-Date -Format 'yyyyMMdd-HHmmss')
 )
 
@@ -64,10 +65,11 @@ $manifest = [ordered]@{
 $manifest | ConvertTo-Json | Set-Content (Join-Path $outDir 'manifest.json') -Encoding utf8
 Write-Host 'For comparable results, stop subtitles/playback before running. This script does not stop other apps.'
 foreach ($count in $Threads) {
-    $command = "LD_LIBRARY_PATH=$remote $remote/device_benchmark /data/local/tmp/funasr-perf/sensevoice-small-q8.gguf /data/local/tmp/funasr-perf/fsmn-vad.gguf $remote/input.wav $count $Repeats"
+    $abortArgument = if ($PSBoundParameters.ContainsKey('AbortAfterMs')) { " $AbortAfterMs" } else { '' }
+    $command = "LD_LIBRARY_PATH=$remote $remote/device_benchmark /data/local/tmp/funasr-perf/sensevoice-small-q8.gguf /data/local/tmp/funasr-perf/fsmn-vad.gguf $remote/input.wav $count $Repeats$abortArgument"
     $log = Join-Path $outDir "threads-$count.txt"
     & $adb @deviceArgs shell $command > $log 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Benchmark failed; see $log" }
-    Get-Content -LiteralPath $log | Where-Object { $_ -match '^(load_ms|iteration|\d+\t)' }
+    Get-Content -LiteralPath $log | Where-Object { $_ -match '^(load_ms|abort_test_ms|iteration|\d+\t)' }
 }
 Write-Host "Raw results and provenance: $outDir"

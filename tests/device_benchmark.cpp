@@ -12,6 +12,14 @@ using Timer = std::chrono::steady_clock;
 static double elapsed(Timer::time_point start) {
     return std::chrono::duration<double, std::milli>(Timer::now() - start).count();
 }
+struct AbortAfter {
+    Timer::time_point started;
+    double milliseconds;
+};
+static bool abort_after(void* data) {
+    const auto* request = static_cast<const AbortAfter*>(data);
+    return elapsed(request->started) >= request->milliseconds;
+}
 static uint32_t u32(std::istream& in) {
     unsigned char b[4]{};
     if (!in.read(reinterpret_cast<char*>(b), 4)) throw std::runtime_error("Truncated WAV");
@@ -47,8 +55,8 @@ static std::vector<float> read_wav(const char* path) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 6) {
-        std::fprintf(stderr, "Usage: device_benchmark MODEL VAD WAV THREADS REPEATS\n");
+    if (argc != 6 && argc != 7) {
+        std::fprintf(stderr, "Usage: device_benchmark MODEL VAD WAV THREADS REPEATS [ABORT_AFTER_MS]\n");
         return 2;
     }
     try {
@@ -62,6 +70,14 @@ int main(int argc, char** argv) {
         std::printf("iteration\taudio_s\tthreads\tasr_ms\trtf\tvad_1s_ms\ttext\n");
         std::fflush(stdout);
         std::vector<float> vad_audio(samples.begin(), samples.begin() + std::min<size_t>(16000, samples.size()));
+        if (argc == 7) {
+            AbortAfter request{Timer::now(), std::stod(argv[6])};
+            start = Timer::now();
+            auto aborted = asr.transcribe(samples, abort_after, &request);
+            std::printf("abort_test_ms\t%.3f\tempty=%d\n", elapsed(start), aborted.empty());
+            if (!aborted.empty()) throw std::runtime_error("Abort test returned text");
+            // A cancelled graph must not poison the next graph on the same backend.
+        }
         for (int i = 0; i < repeats; ++i) {
             start = Timer::now();
             auto result = asr.transcribe(samples);

@@ -23,6 +23,16 @@
 
 using Clock = std::chrono::steady_clock;
 
+struct PreviewAbort {
+    const std::atomic<uint64_t>* final_epoch;
+    uint64_t expected_epoch;
+};
+
+static bool abort_preview_if_final_waiting(void* data) {
+    const auto* request = static_cast<const PreviewAbort*>(data);
+    return request->final_epoch->load(std::memory_order_acquire) != request->expected_epoch;
+}
+
 static jint attach_current_thread(JavaVM* vm, JNIEnv** env) {
 #if defined(__ANDROID__)
     return vm->AttachCurrentThread(env, nullptr);
@@ -80,6 +90,7 @@ class NativeSession {
     std::vector<float> converted_;
     std::atomic<bool> stop_{false};
     std::atomic<size_t> capture_drops_{0};
+    std::atomic<uint64_t> final_epoch_{0};
     std::condition_variable audio_cv_;
     std::mutex audio_mutex_;
     std::thread worker_;
@@ -167,13 +178,20 @@ private:
                                 before - job->queued_at).count();
                         // Optimized kernels can process the full context. Keep the
                         // sentence prefix in previews as well as final results.
-                        auto text = engine.transcribe(job->audio);
+                        const uint64_t preview_epoch = final_epoch_.load(std::memory_order_acquire);
+                        PreviewAbort abort_request{&final_epoch_, preview_epoch};
+                        auto text = job->final
+                                ? engine.transcribe(job->audio)
+                                : engine.transcribe(job->audio, abort_preview_if_final_waiting,
+                                                    &abort_request);
                         const double compute_ms = std::chrono::duration<double, std::milli>(
                                 Clock::now() - before).count();
+                        const bool cancelled = !job->final && text.empty() &&
+                                final_epoch_.load(std::memory_order_acquire) != preview_epoch;
                         __android_log_print(ANDROID_LOG_INFO, "FunASRPerf",
-                                "asr id=%llu final=%d audio_ms=%.2f queue_ms=%.2f compute_ms=%.2f capture_drops=%zu final_drops=%zu",
+                                "asr id=%llu final=%d cancelled=%d audio_ms=%.2f queue_ms=%.2f compute_ms=%.2f capture_drops=%zu final_drops=%zu",
                                 static_cast<unsigned long long>(job->id), job->final,
-                                job->audio.size() / 16.0, queue_ms, compute_ms,
+                                cancelled, job->audio.size() / 16.0, queue_ms, compute_ms,
                                 capture_drops_.load(std::memory_order_relaxed), final_drops);
                         if (stop_.load()) break;
                         if (!text.empty()) last_text[job->id] = text;
@@ -213,6 +231,11 @@ private:
                     for (auto& event : stream.accept(buffer.data(), count)) {
                         std::lock_guard lock(queue_mutex);
                         event.queued_at = Clock::now();
+                        if (event.final) {
+                            event.final_epoch = final_epoch_.fetch_add(1, std::memory_order_acq_rel) + 1;
+                        } else {
+                            event.final_epoch = final_epoch_.load(std::memory_order_acquire);
+                        }
                         // SegmentQueue retains only the latest waiting preview and
                         // prioritizes finals; no extra delay until the next preview.
                         jobs.push(std::move(event));
