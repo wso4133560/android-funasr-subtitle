@@ -58,26 +58,6 @@
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/importAsrButton"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/button_secondary"
-            android:text="@string/asr_model"
-            android:textAllCaps="false"
-            android:textColor="@color/text_primary" />
-
-        <Button
-            android:id="@+id/importVadButton"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/button_secondary"
-            android:text="@string/vad_model"
-            android:textAllCaps="false"
-            android:textColor="@color/text_primary" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

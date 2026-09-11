@@ -21,9 +21,6 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_PERMISSIONS = 100;
     private static final int REQUEST_OVERLAY = 101;
     private static final int REQUEST_CAPTURE = 102;
-    private static final int REQUEST_ASR_MODEL = 103;
-    private static final int REQUEST_VAD_MODEL = 104;
-
     private ModelRepository models;
     private AppSettings settings;
     private TextView statusText;
@@ -43,8 +40,6 @@ public final class MainActivity extends Activity {
         fontSizeLabel = findViewById(R.id.fontSizeLabel);
         opacityLabel = findViewById(R.id.opacityLabel);
 
-        findViewById(R.id.importAsrButton).setOnClickListener(v -> chooseModel(REQUEST_ASR_MODEL));
-        findViewById(R.id.importVadButton).setOnClickListener(v -> chooseModel(REQUEST_VAD_MODEL));
         findViewById(R.id.startButton).setOnClickListener(v -> beginStart());
         findViewById(R.id.stopButton).setOnClickListener(v -> {
             SubtitleService.stop(this);
@@ -117,17 +112,9 @@ public final class MainActivity extends Activity {
         opacityLabel.setText("背景透明度 · " + Math.round(value * 100f / 255f) + "%");
     }
 
-    private void chooseModel(int requestCode) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("*/*")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivityForResult(intent, requestCode);
-    }
-
     private void beginStart() {
         if (!models.isReady()) {
-            statusText.setText("请先导入并校验两个模型");
+            statusText.setText("内置模型尚未准备完成，请稍候");
             return;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -172,11 +159,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if ((requestCode == REQUEST_ASR_MODEL || requestCode == REQUEST_VAD_MODEL)
-                && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            importModel(data.getData(), requestCode == REQUEST_ASR_MODEL
-                    ? ModelRepository.Type.SENSEVOICE : ModelRepository.Type.VAD);
-        } else if (requestCode == REQUEST_OVERLAY) {
+        if (requestCode == REQUEST_OVERLAY) {
             waitingForOverlay = false;
             if (Settings.canDrawOverlays(this)) requestCapture();
             else statusText.setText("显示透明字幕需要悬浮窗权限");
@@ -188,14 +171,6 @@ public final class MainActivity extends Activity {
                 statusText.setText("未获得系统音频捕获授权");
             }
         }
-    }
-
-    private void importModel(Uri uri, ModelRepository.Type type) {
-        statusText.setText("正在复制并校验 " + type.fileName);
-        models.importModel(uri, type, (success, message) -> {
-            statusText.setText(message);
-            refreshState();
-        });
     }
 
     private void refreshState() {
