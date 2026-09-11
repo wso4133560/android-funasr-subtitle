@@ -5,12 +5,19 @@ param(
     [ValidateRange(1, 16)][int[]]$Threads = @(4),
     [ValidateRange(1, 100)][int]$Repeats = 3,
     [ValidateRange(0, 60000)][double]$AbortAfterMs,
+    [ValidateSet('cpu', 'vulkan')][string]$Backend = 'cpu',
+    [switch]$CheckLifecycle,
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$Label = (Get-Date -Format 'yyyyMMdd-HHmmss')
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-if (-not $ApkPath) { $ApkPath = Join-Path $root 'app/build/outputs/apk/debug/app-debug.apk' }
+if (-not $ApkPath) {
+    $ApkPath = Join-Path $root 'app/build/outputs/apk/debug/FunASR-Subtitle-v0.1.0-arm64-v8a.apk'
+    if (-not (Test-Path -LiteralPath $ApkPath)) {
+        $ApkPath = Join-Path $root 'app/build/outputs/apk/debug/app-debug.apk'
+    }
+}
 $ApkPath = (Resolve-Path -LiteralPath $ApkPath).Path
 $AudioPath = (Resolve-Path -LiteralPath $AudioPath).Path
 $sdk = Join-Path $root '.android-sdk'
@@ -61,15 +68,18 @@ $manifest = [ordered]@{
     soc = (Invoke-Adb shell getprop ro.soc.model | Out-String).Trim()
     threads = $Threads
     repeats = $Repeats
+    backend = $Backend
+    checkLifecycle = [bool]$CheckLifecycle
 }
 $manifest | ConvertTo-Json | Set-Content (Join-Path $outDir 'manifest.json') -Encoding utf8
 Write-Host 'For comparable results, stop subtitles/playback before running. This script does not stop other apps.'
 foreach ($count in $Threads) {
     $abortArgument = if ($PSBoundParameters.ContainsKey('AbortAfterMs')) { " $AbortAfterMs" } else { '' }
-    $command = "LD_LIBRARY_PATH=$remote $remote/device_benchmark /data/local/tmp/funasr-perf/sensevoice-small-q8.gguf /data/local/tmp/funasr-perf/fsmn-vad.gguf $remote/input.wav $count $Repeats$abortArgument"
+    $lifecycleArgument = if ($CheckLifecycle) { ' --check-lifecycle' } else { '' }
+    $command = "LD_LIBRARY_PATH=$remote $remote/device_benchmark /data/local/tmp/funasr-perf/sensevoice-small-q8.gguf /data/local/tmp/funasr-perf/fsmn-vad.gguf $remote/input.wav $count $Repeats$abortArgument $Backend$lifecycleArgument"
     $log = Join-Path $outDir "threads-$count.txt"
     & $adb @deviceArgs shell $command > $log 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Benchmark failed; see $log" }
-    Get-Content -LiteralPath $log | Where-Object { $_ -match '^(load_ms|abort_test_ms|iteration|\d+\t)' }
+    Get-Content -LiteralPath $log | Where-Object { $_ -match '^(load_ms|abort_test_ms|lifecycle_check|iteration|\d+\t)' }
 }
 Write-Host "Raw results and provenance: $outDir"

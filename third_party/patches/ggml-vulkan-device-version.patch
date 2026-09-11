@@ -1,0 +1,61 @@
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan.cpp b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+index a923755..d76b1e9 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -7413,17 +7413,19 @@ static void ggml_vk_instance_init() {
+     if (devices_env != nullptr) {
+         size_t num_available_devices = devices.size();
+ 
+-        std::string devices(devices_env);
+-        std::replace(devices.begin(), devices.end(), ',', ' ');
++        std::string requested_devices(devices_env);
++        std::replace(requested_devices.begin(), requested_devices.end(), ',', ' ');
+ 
+-        std::stringstream ss(devices);
++        std::stringstream ss(requested_devices);
+         size_t tmp;
+         while (ss >> tmp) {
+             if(tmp >= num_available_devices) {
+                 std::cerr << "ggml_vulkan: Invalid device index " << tmp << " in GGML_VK_VISIBLE_DEVICES." << std::endl;
+                 throw std::runtime_error("Invalid Vulkan device index");
+             }
+-            vk_instance.device_indices.push_back(tmp);
++            if (ggml_vk_device_is_supported(devices[tmp])) {
++                vk_instance.device_indices.push_back(tmp);
++            }
+         }
+     } else {
+         // If no vulkan devices are found, return early
+@@ -7535,7 +7537,8 @@ static void ggml_vk_instance_init() {
+         // If only CPU devices are available, return without devices.
+         if (vk_instance.device_indices.empty()) {
+             for (size_t i = 0; i < devices.size(); i++) {
+-                if (devices[i].getProperties().deviceType != vk::PhysicalDeviceType::eCpu) {
++                if (devices[i].getProperties().deviceType != vk::PhysicalDeviceType::eCpu &&
++                    ggml_vk_device_is_supported(devices[i])) {
+                     vk_instance.device_indices.push_back(i);
+                     break;
+                 }
+@@ -18772,10 +18775,20 @@ static bool ggml_vk_instance_debug_utils_ext_available(
+ }
+ 
+ static bool ggml_vk_device_is_supported(const vk::PhysicalDevice & vkdev) {
+-    VkPhysicalDeviceFeatures2 device_features2;
++    // Android's loader version can be newer than its actual GPU driver. The
++    // backend uses core Vulkan 1.2 feature chains, so checking the instance's
++    // version alone can admit devices with missing entry points and queues.
++    const auto properties = vkdev.getProperties();
++    if (properties.apiVersion < VK_API_VERSION_1_2) {
++        GGML_LOG_WARN("ggml_vulkan: Skipping %s: device Vulkan %u.%u.%u; 1.2 required.\n",
++                      properties.deviceName.data(), VK_VERSION_MAJOR(properties.apiVersion),
++                      VK_VERSION_MINOR(properties.apiVersion), VK_VERSION_PATCH(properties.apiVersion));
++        return false;
++    }
++    VkPhysicalDeviceFeatures2 device_features2{};
+     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+ 
+-    VkPhysicalDeviceVulkan11Features vk11_features;
++    VkPhysicalDeviceVulkan11Features vk11_features{};
+     vk11_features.pNext = nullptr;
+     vk11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+     device_features2.pNext = &vk11_features;

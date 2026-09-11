@@ -44,7 +44,7 @@ pwsh -File scripts/download-models.ps1
 pwsh -File scripts/build.ps1
 ```
 
-APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。`scripts/build.ps1` 会从 `models/` 目录
+APK 输出到 `app/build/outputs/apk/debug/FunASR-Subtitle-v0.1.0-arm64-v8a.apk`。`scripts/build.ps1` 会从 `models/` 目录
 把 `sensevoice-small-q8.gguf` 和 `fsmn-vad.gguf` 打包进 APK，首次启动时自动校验并安装，APK
 预计约 260 MB，应用私有目录还需要约 260 MB 可用空间。若只直接执行 Gradle 而未运行构建脚本，
 则不会生成内置模型资源。
@@ -70,3 +70,8 @@ playback capture 的应用不会提供音频，这是平台限制，不是识别
 第三方来源和许可证见 [NOTICE](NOTICE.md)。
 
 性能修复、真机实测与复现方法见 [性能验证](docs/PERFORMANCE.md)。
+
+ARM 指令集、线程池/计算缓冲复用，以及可选 Vulkan 构建的最新结果见
+[ARM / Vulkan 优化验证](docs/ARM_VULKAN.md)。默认构建保持通用 ARM64 CPU；
+当前真机的专用测试包使用 `scripts/build.ps1 -CpuArchitecture armv8.2-a+dotprod+fp16`，
+不能直接作为所有 ARM64 手机的通用安装包。应用目前仍使用 CPU 后端。

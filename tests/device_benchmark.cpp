@@ -3,6 +3,7 @@
 #include "engine.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -19,6 +20,17 @@ struct AbortAfter {
 static bool abort_after(void* data) {
     const auto* request = static_cast<const AbortAfter*>(data);
     return elapsed(request->started) >= request->milliseconds;
+}
+static void check_vad(const std::vector<float>& actual, const std::vector<float>* expected = nullptr) {
+    if(actual.empty()) throw std::runtime_error("VAD returned no frames");
+    if(expected && actual.size()!=expected->size())
+        throw std::runtime_error("VAD frame count changed after reuse");
+    for(size_t i=0;i<actual.size();++i){
+        if(!std::isfinite(actual[i]) || actual[i]<0.0f || actual[i]>1.0f)
+            throw std::runtime_error("VAD returned an invalid probability");
+        if(expected && std::abs(actual[i]-(*expected)[i])>1e-6f)
+            throw std::runtime_error("VAD probabilities changed after reuse");
+    }
 }
 static uint32_t u32(std::istream& in) {
     unsigned char b[4]{};
@@ -55,8 +67,8 @@ static std::vector<float> read_wav(const char* path) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 6 && argc != 7) {
-        std::fprintf(stderr, "Usage: device_benchmark MODEL VAD WAV THREADS REPEATS [ABORT_AFTER_MS]\n");
+    if (argc < 6 || argc > 9) {
+        std::fprintf(stderr, "Usage: device_benchmark MODEL VAD WAV THREADS REPEATS [ABORT_AFTER_MS] [BACKEND] [--check-lifecycle]\n");
         return 2;
     }
     try {
@@ -64,14 +76,32 @@ int main(int argc, char** argv) {
         if (threads < 1 || threads > 16 || repeats < 1 || repeats > 100) return 2;
         auto samples = read_wav(argv[3]);
         auto start = Timer::now();
-        SenseVoice asr(argv[1], threads);
+        bool has_abort = false;
+        bool check_lifecycle = false;
+        double abort_ms = 0;
+        std::string backend = "cpu";
+        for(int i=6;i<argc;++i){
+            const std::string arg=argv[i];
+            if(arg=="--check-lifecycle") check_lifecycle=true;
+            else if(arg=="cpu" || arg=="vulkan") backend=arg;
+            else {
+                size_t consumed=0;
+                abort_ms=std::stod(arg,&consumed);
+                if(has_abort || consumed!=arg.size() || abort_ms<0 || abort_ms>60000)
+                    throw std::runtime_error("Invalid abort argument");
+                has_abort=true;
+            }
+        }
+        if(has_abort && backend!="cpu")
+            throw std::runtime_error("In-flight cancellation is only supported by CPU");
+        SenseVoice asr(argv[1], threads, backend);
         SpeechVad vad(argv[2], 2);
         std::printf("load_ms\t%.3f\n", elapsed(start));
         std::printf("iteration\taudio_s\tthreads\tasr_ms\trtf\tvad_1s_ms\ttext\n");
         std::fflush(stdout);
         std::vector<float> vad_audio(samples.begin(), samples.begin() + std::min<size_t>(16000, samples.size()));
-        if (argc == 7) {
-            AbortAfter request{Timer::now(), std::stod(argv[6])};
+        if (has_abort) {
+            AbortAfter request{Timer::now(), abort_ms};
             start = Timer::now();
             bool did_abort = false;
             auto aborted = asr.transcribe(samples, abort_after, &request, &did_abort);
@@ -79,17 +109,36 @@ int main(int argc, char** argv) {
             if (!aborted.empty() || !did_abort) throw std::runtime_error("Abort test did not abort");
             // A cancelled graph must not poison the next graph on the same backend.
         }
+        std::string first_result;
+        std::vector<float> first_vad;
         for (int i = 0; i < repeats; ++i) {
             start = Timer::now();
             auto result = asr.transcribe(samples);
+            if(i==0) first_result=result;
+            else if(result!=first_result) throw std::runtime_error("Repeated transcription changed");
             const double asr_ms = elapsed(start);
             start = Timer::now();
-            vad.probabilities(vad_audio);
+            auto probabilities=vad.probabilities(vad_audio);
             const double vad_ms = elapsed(start), seconds = samples.size() / 16000.0;
+            check_vad(probabilities,i==0 ? nullptr : &first_vad);
+            if(i==0) first_vad=std::move(probabilities);
             for (char& ch : result) if (ch == '\n' || ch == '\r' || ch == '\t') ch = ' ';
             std::printf("%d\t%.3f\t%d\t%.3f\t%.4f\t%.3f\t%s\n",
                         i, seconds, threads, asr_ms, asr_ms / (seconds * 1000), vad_ms, result.c_str());
             std::fflush(stdout);
+        }
+        if(check_lifecycle){
+            // Exercise resizing both ways on the same instance, then prove the
+            // original utterance survives buffer reuse and an earlier abort.
+            for(size_t seconds : {1u,3u,8u,2u}){
+                std::vector<float> window(samples.begin(),samples.begin()+std::min(samples.size(),seconds*16000));
+                asr.transcribe(window);
+                check_vad(vad.probabilities(window));
+            }
+            if(asr.transcribe(samples)!=first_result)
+                throw std::runtime_error("Audio window resizing changed the full transcription");
+            check_vad(vad.probabilities(vad_audio),&first_vad);
+            std::printf("lifecycle_check\tpassed\n");
         }
     } catch (const std::exception& error) {
         std::fprintf(stderr, "%s\n", error.what());

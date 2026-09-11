@@ -36,6 +36,8 @@ if (-not (Test-Path (Join-Path $llamaDirectory 'ggml\CMakeLists.txt'))) {
     Remove-Item -LiteralPath $archive -Force
 }
 
+& (Join-Path $PSScriptRoot 'apply-ggml-patches.ps1')
+
 if ($SkipAndroidSdk) {
     Write-Host 'Pinned ggml source is ready; Android SDK installation was skipped.'
     exit 0

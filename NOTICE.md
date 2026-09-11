@@ -11,4 +11,12 @@ commit `803b7fcae893e9caaee3921779628fef83ac0965`. Its MIT license is in
 
 SenseVoice Small and FSMN-VAD model files are published separately by FunAudioLLM. They are
 downloaded only when requested, are verified by SHA256, and are not committed to this repository
-or embedded in the APK.
+as binaries. The build script embeds the verified models in the APK for automatic installation
+on first launch.
+
+The optional Vulkan build also uses Khronos Vulkan C / C++ headers and SPIR-V headers.
+`scripts/prepare-vulkan.ps1` copies them into the ignored `.android-vulkan` directory and
+preserves their embedded copyright and license notices. The tested Vulkan-Hpp headers use
+Apache-2.0 OR MIT; Vulkan C headers use Apache-2.0 OR MIT; SPIR-V headers carry the Khronos
+permission notice. The script records header and shader-compiler hashes in its local manifest.
+These optional dependencies are not needed for the default CPU-only build.

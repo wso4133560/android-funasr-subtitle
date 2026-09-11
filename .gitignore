@@ -1,5 +1,7 @@
 /.gradle/
 /.android-sdk/
+/.android/
+/.android-vulkan/
 /.gradle-home/
 /local.properties
 /commandlinetools.zip

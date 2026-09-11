@@ -65,8 +65,15 @@ using namespace funasr_vad_impl;
 struct SpeechVad::Impl {
   vad m;
   ggml_backend_t be=nullptr;
+  ggml_threadpool_t threadpool=nullptr;
+  ggml_gallocr_t allocator=nullptr;
   int idim=0,pd=0,nl=0,lorder=0,od=0,lm=0,ln=0,threads=2;
-  ~Impl(){if(be)ggml_backend_free(be);if(m.ctx)ggml_free(m.ctx);}
+  ~Impl(){
+    if(allocator)ggml_gallocr_free(allocator);
+    if(be)ggml_backend_free(be);
+    if(threadpool)ggml_threadpool_free(threadpool);
+    if(m.ctx)ggml_free(m.ctx);
+  }
   void load(const std::string& gguf_path,int thread_count){
     threads=thread_count;
   gguf_init_params ip={false,&m.ctx}; gguf_context*gg=gguf_init_from_file(gguf_path.c_str(),ip);
@@ -89,6 +96,13 @@ struct SpeechVad::Impl {
 
     be=ggml_backend_cpu_init();
     if(!be) throw std::runtime_error("FSMN-VAD CPU initialization failed");
+    auto params=ggml_threadpool_params_default(threads);
+    params.poll=0;
+    threadpool=ggml_threadpool_new(&params);
+    if(!threadpool) throw std::runtime_error("VAD threadpool allocation failed");
+    ggml_backend_cpu_set_threadpool(be,threadpool);
+    allocator=ggml_gallocr_new(ggml_backend_cpu_buffer_type());
+    if(!allocator) throw std::runtime_error("VAD allocator initialization failed");
   }
   std::vector<float> run(const std::vector<float>& wav){
   auto feat=fbank80(wav); int T=0; auto feats=lfr(feat,lm,ln,T);   // [T,400]
@@ -100,6 +114,8 @@ struct SpeechVad::Impl {
   // no_alloc=true -> ctx holds only tensor/graph metadata (the real compute buffer is
   // allocated by gallocr below), so a few MB is plenty regardless of clip length.
   ggml_init_params cp={(size_t)16*1024*1024,nullptr,true}; ggml_context*c=ggml_init(cp);
+  if(!c) throw std::runtime_error("VAD graph metadata allocation failed");
+  auto ctx_guard=std::unique_ptr<ggml_context,decltype(&ggml_free)>(c,ggml_free);
   ggml_tensor*x=ggml_new_tensor_2d(c,GGML_TYPE_F32,idim,T); ggml_set_input(x);
   ggml_tensor*h=lin(c,m.g("encoder.in_linear1.linear.weight"),m.g("encoder.in_linear1.linear.bias"),x);
   h=lin(c,m.g("encoder.in_linear2.linear.weight"),m.g("encoder.in_linear2.linear.bias"),h); h=ggml_relu(c,h);
@@ -113,11 +129,10 @@ struct SpeechVad::Impl {
   h=lin(c,m.g("encoder.out_linear2.linear.weight"),m.g("encoder.out_linear2.linear.bias"),h);
   h=ggml_soft_max(c,h); ggml_set_output(h);
   ggml_cgraph*gf=ggml_new_graph(c); ggml_build_forward_expand(gf,h);
-  ggml_gallocr_t ga=ggml_gallocr_new(ggml_backend_cpu_buffer_type()); ggml_gallocr_alloc_graph(ga,gf);
+  if(!ggml_gallocr_alloc_graph(allocator,gf)) throw std::runtime_error("VAD graph allocation failed");
   ggml_backend_tensor_set(x,feats.data(),0,ggml_nbytes(x)); ggml_backend_cpu_set_n_threads(be,threads);
   bool ok=ggml_backend_graph_compute(be,gf)==GGML_STATUS_SUCCESS;
   std::vector<float> sc((size_t)od*T); if(ok)ggml_backend_tensor_get(h,sc.data(),0,ggml_nbytes(h));
-  ggml_gallocr_free(ga);ggml_free(c);
   if(!ok) throw std::runtime_error("FSMN-VAD compute failed");
   std::vector<float> probabilities(T);
   for(int t=0;t<T;++t) probabilities[t]=1.0f-sc[(size_t)t*od];

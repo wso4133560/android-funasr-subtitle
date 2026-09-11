@@ -20,6 +20,8 @@ android {
             cmake {
                 cppFlags += listOf("-std=c++20")
                 arguments += listOf("-DANDROID_STL=c++_shared")
+                arguments += "-DFUNASR_ARM_ARCH=${providers.gradleProperty("funasrArmArch").getOrElse("armv8-a")}"
+                arguments += "-DFUNASR_VULKAN=${if (providers.gradleProperty("funasrVulkan").getOrElse("false").toBoolean()) "ON" else "OFF"}"
             }
         }
     }

@@ -120,6 +120,7 @@ static graph_backend initialize_device_backend(const std::string&name,ggml_backe
   out.buffer_type=ggml_backend_get_default_buffer_type(out.backend);
   if(!out.buffer_type){
     fprintf(stderr,"%s backend on %s has no default buffer type\n",name.c_str(),dev_name);
+    ggml_backend_free(out.backend);
     throw std::runtime_error("SenseVoice native initialization failure");
   }
   fprintf(stderr,"%s backend ready on %s\n",name.c_str(),dev_name);
@@ -255,15 +256,34 @@ static std::string detok_sv(const std::vector<int>&ids,const std::vector<std::st
 struct SenseVoice::Impl {
   model m;
   graph_backend graph_be;
+  ggml_threadpool_t threadpool=nullptr;
+  ggml_gallocr_t allocator=nullptr;
   static constexpr int F=560;
   int D=0,V=0,nq=0,threads=8;
   std::vector<int> qtok;
   std::vector<std::string> vocab;
   std::vector<float> embed_f32;
-  ~Impl(){free_model(m); if(graph_be.backend) ggml_backend_free(graph_be.backend);}
-  void load(const std::string& gguf_path,int thread_count){
+  ~Impl(){
+    if(allocator) ggml_gallocr_free(allocator);
+    if(graph_be.backend) ggml_backend_free(graph_be.backend);
+    if(threadpool) ggml_threadpool_free(threadpool);
+    free_model(m);
+  }
+  void load(const std::string& gguf_path,int thread_count,const std::string& backend){
     threads=thread_count;
-    graph_be=make_graph_backend("cpu");
+    graph_be=make_graph_backend(backend);
+    if(graph_be.is_cpu){
+      auto params=ggml_threadpool_params_default(threads);
+      // Workers sleep between audio windows instead of polling while idle.
+      params.poll=0;
+      threadpool=ggml_threadpool_new(&params);
+      if(!threadpool) throw std::runtime_error("ASR threadpool allocation failed");
+      ggml_backend_cpu_set_threadpool(graph_be.backend,threadpool);
+    }
+    // Retain compute buffers, but rebuild every graph from the complete audio
+    // window. No encoder state, tokens or past audio are reused here.
+    allocator=ggml_gallocr_new(graph_be.buffer_type);
+    if(!allocator) throw std::runtime_error("ASR allocator initialization failed");
   // load model
   trace_stage("[sensevoice] loading model metadata");
   if(!load_model_weights(gguf_path,graph_be.buffer_type,m))throw std::runtime_error("Invalid SenseVoice model"); gguf_context*gg=m.gguf;
@@ -317,19 +337,27 @@ struct SenseVoice::Impl {
     ggml_tensor*logits=lin(c,m.g("ctc.ctc_lo.weight"),m.g("ctc.ctc_lo.bias"),h);  // [V, N]
     ggml_set_output(logits);
     ggml_cgraph*gf=ggml_new_graph_custom(c,32768,false); ggml_build_forward_expand(gf,logits);
+    // An unsupported GPU operation must be reported before submitting a graph;
+    // ggml's direct backend path has no automatic CPU scheduling fallback.
+    if(!graph_be.is_cpu){
+      for(int i=0;i<ggml_graph_n_nodes(gf);++i){
+        auto* node=ggml_graph_node(gf,i);
+        if(!ggml_backend_supports_op(graph_be.backend,node))
+          throw std::runtime_error(std::string("Vulkan does not support graph operation: ")+ggml_op_name(node->op));
+      }
+    }
     trace_stage("[sensevoice] graph built");
     trace_stage("[sensevoice] allocating graph");
-    ggml_gallocr_t ga=ggml_gallocr_new(graph_be.buffer_type); auto ga_guard=std::unique_ptr<ggml_gallocr, decltype(&ggml_gallocr_free)>(ga, ggml_gallocr_free);
-    if(!ggml_gallocr_alloc_graph(ga,gf)) throw std::runtime_error("Graph allocation failed");
+    if(!ggml_gallocr_alloc_graph(allocator,gf)) throw std::runtime_error("Graph allocation failed");
     trace_stage("[sensevoice] graph allocated");
     ggml_backend_tensor_set(x,inp.data(),0,ggml_nbytes(x)); if(graph_be.is_cpu) ggml_backend_cpu_set_n_threads(graph_be.backend,threads);
     trace_stage("[sensevoice] compute starting");
-    ggml_backend_cpu_set_abort_callback(graph_be.backend, abort_callback, abort_data);
+    if(graph_be.is_cpu) ggml_backend_cpu_set_abort_callback(graph_be.backend, abort_callback, abort_data);
     enum ggml_status compute_status=ggml_backend_graph_compute(graph_be.backend,gf);
     // The backend belongs to this serial SenseVoice instance. Clear the callback
     // before returning so a later final inference can never inherit a preview's
     // cancellation condition.
-    ggml_backend_cpu_set_abort_callback(graph_be.backend, nullptr, nullptr);
+    if(graph_be.is_cpu) ggml_backend_cpu_set_abort_callback(graph_be.backend, nullptr, nullptr);
     trace_stage("[sensevoice] compute complete: status=%d",(int)compute_status);
     if(compute_status==GGML_STATUS_ABORTED){
       if(aborted) *aborted=true;
@@ -352,7 +380,8 @@ struct SenseVoice::Impl {
 
   }
 };
-SenseVoice::SenseVoice(const std::string& path,int threads):impl_(std::make_unique<Impl>()) { impl_->load(path,threads); }
+SenseVoice::SenseVoice(const std::string& path,int threads):SenseVoice(path,threads,"cpu") {}
+SenseVoice::SenseVoice(const std::string& path,int threads,const std::string& backend):impl_(std::make_unique<Impl>()) { impl_->load(path,threads,backend); }
 SenseVoice::~SenseVoice()=default;
 std::string SenseVoice::transcribe(const std::vector<float>& samples){
   return transcribe(samples, nullptr, nullptr);

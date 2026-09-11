@@ -1,0 +1,410 @@
+{
+  "date": "2026-09-11",
+  "device": "22041211AC",
+  "soc": "MT6895Z/TCZA",
+  "api": 34,
+  "cpu_threads": 4,
+  "audio_s": 11,
+  "reference": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+  "measurements": {
+    "before_arm": {
+      "raw_log": "build/perf/cpu-original-11s/recheck.txt",
+      "rows": [
+        {
+          "iteration": 0,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1548.293,
+          "rtf": 0.1408,
+          "vad_1s_ms": 8.59,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 1,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1541.887,
+          "rtf": 0.1402,
+          "vad_1s_ms": 8.776,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 2,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1542.093,
+          "rtf": 0.1402,
+          "vad_1s_ms": 8.964,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 3,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1533.411,
+          "rtf": 0.1394,
+          "vad_1s_ms": 10.462,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 4,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1522.67,
+          "rtf": 0.1384,
+          "vad_1s_ms": 10.623,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 5,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1540.931,
+          "rtf": 0.1401,
+          "vad_1s_ms": 10.672,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "asr_ms": {
+        "n": 6,
+        "mean": 1538.214,
+        "p50": 1540.931,
+        "p95": 1548.293,
+        "min": 1522.67,
+        "max": 1548.293
+      },
+      "vad_1s_ms": {
+        "n": 6,
+        "mean": 9.681,
+        "p50": 8.964,
+        "p95": 10.672,
+        "min": 8.59,
+        "max": 10.672
+      }
+    },
+    "arm_only": {
+      "raw_log": "build/perf/vulkan-en11-initial/cpu.txt",
+      "rows": [
+        {
+          "iteration": 0,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1218.197,
+          "rtf": 0.1107,
+          "vad_1s_ms": 10.212,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 1,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1220.526,
+          "rtf": 0.111,
+          "vad_1s_ms": 10.279,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 2,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1214.518,
+          "rtf": 0.1104,
+          "vad_1s_ms": 8.933,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 3,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1219.864,
+          "rtf": 0.1109,
+          "vad_1s_ms": 10.385,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 4,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1215.985,
+          "rtf": 0.1105,
+          "vad_1s_ms": 8.638,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 5,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 1230.783,
+          "rtf": 0.1119,
+          "vad_1s_ms": 10.202,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "asr_ms": {
+        "n": 6,
+        "mean": 1219.979,
+        "p50": 1218.197,
+        "p95": 1230.783,
+        "min": 1214.518,
+        "max": 1230.783
+      },
+      "vad_1s_ms": {
+        "n": 6,
+        "mean": 9.775,
+        "p50": 10.202,
+        "p95": 10.385,
+        "min": 8.638,
+        "max": 10.385
+      }
+    },
+    "arm_reuse_vulkan_build_cpu": {
+      "raw_log": "build/perf/cpu-arm-reuse-en11/threads-4.txt",
+      "rows": [
+        {
+          "iteration": 0,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 985.392,
+          "rtf": 0.0896,
+          "vad_1s_ms": 19.574,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 1,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 925.407,
+          "rtf": 0.0841,
+          "vad_1s_ms": 22.819,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 2,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 935.44,
+          "rtf": 0.085,
+          "vad_1s_ms": 18.623,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 3,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 965.938,
+          "rtf": 0.0878,
+          "vad_1s_ms": 28.08,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 4,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 920.538,
+          "rtf": 0.0837,
+          "vad_1s_ms": 28.289,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 5,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 939.214,
+          "rtf": 0.0854,
+          "vad_1s_ms": 28.206,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "asr_ms": {
+        "n": 6,
+        "mean": 945.322,
+        "p50": 935.44,
+        "p95": 985.392,
+        "min": 920.538,
+        "max": 985.392
+      },
+      "vad_1s_ms": {
+        "n": 6,
+        "mean": 24.265,
+        "p50": 22.819,
+        "p95": 28.289,
+        "min": 18.623,
+        "max": 28.289
+      }
+    },
+    "arm_reuse_final_cpu": {
+      "raw_log": "build/perf/cpu-arm-reuse-final/threads-4.txt",
+      "rows": [
+        {
+          "iteration": 0,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 943.364,
+          "rtf": 0.0858,
+          "vad_1s_ms": 19.698,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 1,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 886.992,
+          "rtf": 0.0806,
+          "vad_1s_ms": 21.683,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 2,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 906.887,
+          "rtf": 0.0824,
+          "vad_1s_ms": 25.16,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 3,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 918.1,
+          "rtf": 0.0835,
+          "vad_1s_ms": 28.343,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 4,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 924.476,
+          "rtf": 0.084,
+          "vad_1s_ms": 28.656,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "iteration": 5,
+          "audio_s": 11.0,
+          "threads": 4,
+          "asr_ms": 911.403,
+          "rtf": 0.0829,
+          "vad_1s_ms": 26.594,
+          "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "asr_ms": {
+        "n": 6,
+        "mean": 915.204,
+        "p50": 911.403,
+        "p95": 943.364,
+        "min": 886.992,
+        "max": 943.364
+      },
+      "vad_1s_ms": {
+        "n": 6,
+        "mean": 25.022,
+        "p50": 25.16,
+        "p95": 28.656,
+        "min": 19.698,
+        "max": 28.656
+      }
+    }
+  },
+  "english_wer": {
+    "normalization": "lowercase, remove punctuation",
+    "reference_words": 22,
+    "substitutions": 0,
+    "deletions": 0,
+    "insertions": 0,
+    "wer": 0.0,
+    "scope": "one fixed 11s sample; all six outputs in each group exactly match normalized reference"
+  },
+  "installed_build": {
+    "capturedAt": "2026-09-11T22:29:53.4300398+08:00",
+    "apk": "D:\\code\\funasr\\android-funasr-subtitle\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+    "apkSha256": "0B198B7799C0A095911A878F913D03F0807CA31E8516A64E259FB3A718393BD5",
+    "nativeSha256": "39EB4BE387F45A450F9187B6A5C1FA02E966EE6480454CB14434572560FB4CDE",
+    "audio": "D:\\code\\funasr\\english-test.wav",
+    "audioSha256": "59DFB9A4ACB36FE2A2AFFC14BACBEE2920FF435CB13CC314A08C13F66BA7860E",
+    "device": "22041211AC",
+    "soc": "MT6895Z/TCZA",
+    "threads": [
+      4
+    ],
+    "repeats": 6,
+    "backend": "cpu",
+    "checkLifecycle": true,
+    "elf_build_id": "5bfd1b54ada203b15eed9f0fae44e8180a5cbb43"
+  },
+  "vulkan": {
+    "gpu": "Mali-G610 MC6",
+    "instance_api": "1.3.0",
+    "device_api": "1.1.177",
+    "backend_min_device_api": "1.2",
+    "default_exit": 1,
+    "explicit_device_0_exit": 1,
+    "successful_gpu_transcription": false,
+    "dependencies": {
+      "headersSource": "C:\\msys64\\ucrt64\\include",
+      "ndkVersion": "27.2.12479018",
+      "vulkanHeaderVersion": "#define VK_HEADER_VERSION 341",
+      "vulkanHeaderSha256": "704C9ABB07352598A1596ADB20E971FD6B086243BE649FDF2E9C666C22564794",
+      "spirvHeaderSha256": "E4E3A2CADD392141CA9F8B5528D450A39D891526B6CAB25AA578A6E788F7B58D",
+      "glslcSha256": "7E60E9FBAD819914190D8CE20F1BECADA1EEE524F09E9AAA36149B90F22C5065"
+    }
+  },
+  "limits": [
+    "Sequential same-device samples; clocks, temperature and file cache not controlled.",
+    "Fixed WAV inference timing excludes audio capture, VAD endpoint waiting and physical display presentation.",
+    "Live news is not a labeled WER dataset; do not infer accuracy from low drop counters.",
+    "No 30-minute stability or battery-power test; no second device tested."
+  ],
+  "live": {
+    "source": "build/perf/cpu-arm-reuse-live/live-stream.txt",
+    "media": "YouTube ABC World News Tonight with David Muir Full Broadcast - Sept. 10, 2026",
+    "duration_observed_min": 5.0,
+    "asr_jobs": 285,
+    "final_jobs": 29,
+    "cancelled_temporary_jobs": 11,
+    "compute_ms": {
+      "count": 285,
+      "p50": 676.78,
+      "p95": 1413.94,
+      "max": 1875.23
+    },
+    "queue_ms": {
+      "count": 285,
+      "p50": 0.3,
+      "p95": 439.46,
+      "max": 843.12
+    },
+    "queued_to_decoded_ms": {
+      "count": 285,
+      "p50": 710.89,
+      "p95": 1414.26,
+      "max": 1875.5
+    },
+    "rtf": {
+      "count": 285,
+      "p50": 0.129,
+      "p95": 0.182,
+      "max": 0.385
+    },
+    "callback_to_setText_ms": {
+      "count": 273,
+      "p50": 4.515,
+      "p95": 14.298,
+      "max": 31.877
+    },
+    "capture_drops": 0.0,
+    "final_drops": 0.0,
+    "projection": "active",
+    "overlay": "active",
+    "models": "bundled APK files verified on device",
+    "memory_snapshot_kib": {
+      "native_heap_pss": 302120,
+      "total_pss": 359451,
+      "total_rss": 489944,
+      "swap_pss": 19282
+    },
+    "interpretation": "Cancelled temporary jobs reflect replacement of stale previews; final job drops stayed zero. Metrics begin after VAD segmentation and are not end-to-end latency or labeled WER."
+  }
+}

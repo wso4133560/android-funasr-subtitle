@@ -1,6 +1,7 @@
 package com.wso4133560.funasrsubtitle;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
@@ -18,25 +19,35 @@ final class SubtitleOverlay {
     private final LinearLayout root;
     private final TextView subtitle;
     private final TextView status;
-    private final int backgroundAlpha;
+    private final AppSettings settings;
+    private final GradientDrawable backdrop = new GradientDrawable();
     private boolean attached;
+    // Keep a strong reference: SharedPreferences stores listeners weakly. Its
+    // callbacks run on the main thread, including when apply() saves asynchronously.
+    private final SharedPreferences.OnSharedPreferenceChangeListener settingsListener =
+            (preferences, key) -> {
+                if (attached && (key == null || AppSettings.FONT_SIZE.equals(key)
+                        || AppSettings.BACKGROUND_ALPHA.equals(key))) {
+                    applySettings();
+                }
+            };
     private float downX;
     private float downY;
     private int startX;
     private int startY;
 
     SubtitleOverlay(Context context, AppSettings settings) {
+        this.settings = settings;
         windowManager = context.getSystemService(WindowManager.class);
-        backgroundAlpha = settings.backgroundAlpha();
         root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(context, 18), dp(context, 12), dp(context, 18), dp(context, 10));
-        root.setBackground(background());
+        backdrop.setCornerRadius(8);
+        root.setBackground(backdrop);
 
         subtitle = new TextView(context);
         subtitle.setText("正在加载本地语音模型…");
         subtitle.setTextColor(Color.WHITE);
-        subtitle.setTextSize(settings.fontSizeSp());
         subtitle.setGravity(Gravity.CENTER);
         subtitle.setMaxLines(3);
         subtitle.setShadowLayer(4, 0, 1, Color.BLACK);
@@ -71,8 +82,11 @@ final class SubtitleOverlay {
 
     void show() {
         if (attached) return;
+        // Refresh here as well so a hidden/reused overlay gets the latest values.
+        applySettings();
         windowManager.addView(root, params);
         attached = true;
+        settings.registerListener(settingsListener);
     }
 
     void update(String text, boolean isFinal, double computeMs) {
@@ -87,6 +101,7 @@ final class SubtitleOverlay {
 
     void remove() {
         if (!attached) return;
+        settings.unregisterListener(settingsListener);
         windowManager.removeView(root);
         attached = false;
     }
@@ -108,12 +123,11 @@ final class SubtitleOverlay {
         return event.getAction() == MotionEvent.ACTION_UP;
     }
 
-    private GradientDrawable background() {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(Color.argb(backgroundAlpha, 12, 16, 17));
-        drawable.setCornerRadius(8);
-        drawable.setStroke(1, Color.argb(Math.min(220, backgroundAlpha + 30), 130, 150, 144));
-        return drawable;
+    private void applySettings() {
+        subtitle.setTextSize(settings.fontSizeSp());
+        int alpha = settings.backgroundAlpha();
+        backdrop.setColor(Color.argb(alpha, 12, 16, 17));
+        backdrop.setStroke(1, Color.argb(Math.min(220, alpha + 30), 130, 150, 144));
     }
 
     private static int dp(Context context, int value) {

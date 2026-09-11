@@ -7,6 +7,7 @@ class SenseVoice {
 public:
     using AbortCallback = bool (*)(void*);
     SenseVoice(const std::string& path, int threads);
+    SenseVoice(const std::string& path, int threads, const std::string& backend);
     ~SenseVoice();
     std::string transcribe(const std::vector<float>& samples);
     std::string transcribe(const std::vector<float>& samples,

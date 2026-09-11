@@ -1,4 +1,8 @@
-param([ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug')
+param(
+    [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
+    [ValidateSet('armv8-a', 'armv8.2-a+dotprod+fp16')][string]$CpuArchitecture = 'armv8-a',
+    [switch]$Vulkan
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -18,7 +22,13 @@ Set-Content -LiteralPath (Join-Path $root 'local.properties') -Value "sdk.dir=$e
 $env:ANDROID_HOME = $sdkRoot
 $env:ANDROID_SDK_ROOT = $sdkRoot
 $env:GRADLE_USER_HOME = Join-Path $root '.gradle-home'
+$env:ANDROID_USER_HOME = Join-Path $root '.android'
+New-Item -ItemType Directory -Force $env:ANDROID_USER_HOME | Out-Null
 Remove-Item Env:HTTP_PROXY, Env:HTTPS_PROXY, Env:ALL_PROXY -ErrorAction SilentlyContinue
+& (Join-Path $PSScriptRoot 'apply-ggml-patches.ps1')
+if ($Vulkan -and -not (Test-Path (Join-Path $root '.android-vulkan/manifest.json'))) {
+    & (Join-Path $PSScriptRoot 'prepare-vulkan.ps1')
+}
 
 # 模型不进 Git，但完整 APK 必须自带模型。先把当前目录中已下载且校验过的模型
 # staged 到 generated assets；Gradle 会把这些文件原样放入 APK，应用首次启动再复制
@@ -50,7 +60,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Host tests failed' }
 $taskSuffix = if ($Configuration -eq 'Release') { 'Release' } else { 'Debug' }
 Push-Location $root
 try {
-    & .\gradlew.bat --no-daemon "test${taskSuffix}UnitTest" "lint$taskSuffix" "assemble$taskSuffix"
+    $backendProperty = if ($Vulkan) { '-PfunasrVulkan=true' } else { '-PfunasrVulkan=false' }
+    & .\gradlew.bat --no-daemon $backendProperty "-PfunasrArmArch=$CpuArchitecture" "test${taskSuffix}UnitTest" "lint$taskSuffix" "assemble$taskSuffix"
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed with exit code $LASTEXITCODE" }
 } finally {
     Pop-Location
@@ -60,4 +71,7 @@ $apkName = if ($Configuration -eq 'Release') { 'app-release-unsigned.apk' } else
 $apk = Join-Path $root "app\build\outputs\apk\$($Configuration.ToLowerInvariant())\$apkName"
 if (-not (Test-Path -LiteralPath $apk)) { throw "Expected APK was not created: $apk" }
 & (Join-Path $PSScriptRoot 'verify-native-build.ps1') -Configuration $Configuration -ApkPath $apk
+$publishedApk = Join-Path (Split-Path $apk -Parent) 'FunASR-Subtitle-v0.1.0-arm64-v8a.apk'
+Copy-Item -LiteralPath $apk -Destination $publishedApk -Force
 Write-Host "Build passed: $apk"
+Write-Host "User APK: $publishedApk"
