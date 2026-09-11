@@ -15,6 +15,7 @@ struct Segment {
     double start=0,end=0;
     std::chrono::steady_clock::time_point queued_at{};
     uint64_t final_epoch=0;
+    uint64_t preview_epoch=0;
 };
 // Input frames are exactly 10 ms. Partial revisions replace, never append to, a sentence.
 class Segmenter {

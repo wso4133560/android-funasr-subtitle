@@ -26,11 +26,15 @@ using Clock = std::chrono::steady_clock;
 struct PreviewAbort {
     const std::atomic<uint64_t>* final_epoch;
     uint64_t expected_epoch;
+    const std::atomic<uint64_t>* preview_epoch;
+    uint64_t expected_preview_epoch;
 };
 
 static bool abort_preview_if_final_waiting(void* data) {
     const auto* request = static_cast<const PreviewAbort*>(data);
-    return request->final_epoch->load(std::memory_order_acquire) != request->expected_epoch;
+    return request->final_epoch->load(std::memory_order_acquire) != request->expected_epoch
+            || request->preview_epoch->load(std::memory_order_acquire)
+                    != request->expected_preview_epoch;
 }
 
 static jint attach_current_thread(JavaVM* vm, JNIEnv** env) {
@@ -91,6 +95,7 @@ class NativeSession {
     std::atomic<bool> stop_{false};
     std::atomic<size_t> capture_drops_{0};
     std::atomic<uint64_t> final_epoch_{0};
+    std::atomic<uint64_t> preview_epoch_{0};
     std::condition_variable audio_cv_;
     std::mutex audio_mutex_;
     std::thread worker_;
@@ -182,13 +187,26 @@ private:
                         const auto before = Clock::now();
                         const double queue_ms = std::chrono::duration<double, std::milli>(
                                 before - job->queued_at).count();
-                        // Optimized kernels can process the full context. Keep the
-                        // sentence prefix in previews as well as final results.
-                        PreviewAbort abort_request{&final_epoch_, preview_epoch};
+                        // Final recognition keeps the complete VAD segment. A live
+                        // preview only needs recent context: keeping it bounded avoids
+                        // repeatedly re-encoding a long sentence and prevents the
+                        // preview worker from falling further behind every second.
+                        constexpr size_t preview_window = 6 * 16000;
+                        std::vector<float> preview_audio;
+                        const std::vector<float>* input = &job->audio;
+                        double preview_start = job->start;
+                        if (!job->final && job->audio.size() > preview_window) {
+                            const auto begin = job->audio.size() - preview_window;
+                            preview_audio.assign(job->audio.begin() + begin, job->audio.end());
+                            input = &preview_audio;
+                            preview_start += static_cast<double>(begin) / 16000.0;
+                        }
+                        PreviewAbort abort_request{&final_epoch_, preview_epoch,
+                                                   &preview_epoch_, job->preview_epoch};
                         bool inference_aborted = false;
                         auto text = job->final
-                                ? engine.transcribe(job->audio)
-                                : engine.transcribe(job->audio, abort_preview_if_final_waiting,
+                                ? engine.transcribe(*input)
+                                : engine.transcribe(*input, abort_preview_if_final_waiting,
                                                     &abort_request, &inference_aborted);
                         const double compute_ms = std::chrono::duration<double, std::milli>(
                                 Clock::now() - before).count();
@@ -205,7 +223,10 @@ private:
                             if (previous != last_text.end()) text = previous->second;
                         }
                         if (!text.empty()) {
-                            callback_subtitle(inference_env, *job, text, compute_ms);
+                            Segment displayed = *job;
+                            displayed.start = preview_start;
+                            displayed.audio.clear();
+                            callback_subtitle(inference_env, displayed, text, compute_ms);
                             if (job->final) last_text.erase(job->id);
                         }
                     }
@@ -240,6 +261,11 @@ private:
                             event.final_epoch = final_epoch_.fetch_add(1, std::memory_order_acq_rel) + 1;
                         } else {
                             event.final_epoch = final_epoch_.load(std::memory_order_acquire);
+                            // A newly queued preview supersedes an older one even if
+                            // that older task is already inside GGML. The audio remains
+                            // in the segmenter until the final event, so this drops
+                            // computation only and cannot remove final input data.
+                            event.preview_epoch = preview_epoch_.fetch_add(1, std::memory_order_acq_rel) + 1;
                         }
                         // SegmentQueue retains only the latest waiting preview and
                         // prioritizes finals; no extra delay until the next preview.
