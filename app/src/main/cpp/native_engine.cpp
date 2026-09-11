@@ -74,7 +74,11 @@ class NativeSession {
     std::string vad_path_;
     int threads_;
     AudioRing<16000 * 10> audio_;
+    // AudioRecord delivers the same-sized blocks repeatedly. Keep this buffer
+    // alive between JNI calls so the capture path does not allocate on every read.
+    std::vector<float> converted_;
     std::atomic<bool> stop_{false};
+    std::atomic<bool> inference_busy_{false};
     std::condition_variable audio_cv_;
     std::mutex audio_mutex_;
     std::thread worker_;
@@ -114,9 +118,11 @@ public:
     }
 
     bool push(const int16_t* samples, size_t count) {
-        std::vector<float> converted(count);
-        for (size_t i = 0; i < count; ++i) converted[i] = static_cast<float>(samples[i]) / 32768.0f;
-        const bool accepted = audio_.push(converted.data(), converted.size());
+        converted_.resize(count);
+        for (size_t i = 0; i < count; ++i) {
+            converted_[i] = static_cast<float>(samples[i]) / 32768.0f;
+        }
+        const bool accepted = audio_.push(converted_.data(), converted_.size());
         if (accepted) audio_cv_.notify_one();
         return accepted;
     }
@@ -152,10 +158,23 @@ private:
                             job = jobs.pop();
                         }
                         if (!job) continue;
+                        inference_busy_.store(true, std::memory_order_release);
                         const auto before = Clock::now();
-                        auto text = engine.transcribe(job->audio);
+                        // A partial is a preview. Re-running the complete growing
+                        // utterance every second makes the preview cost grow with
+                        // sentence length. The final event still uses all samples.
+                        const std::vector<float>* input = &job->audio;
+                        std::vector<float> partial_audio;
+                        constexpr size_t max_partial_samples = 16000 * 6;
+                        if (!job->final && job->audio.size() > max_partial_samples) {
+                            partial_audio.assign(job->audio.end() - max_partial_samples,
+                                                 job->audio.end());
+                            input = &partial_audio;
+                        }
+                        auto text = engine.transcribe(*input);
                         const double compute_ms = std::chrono::duration<double, std::milli>(
                                 Clock::now() - before).count();
+                        inference_busy_.store(false, std::memory_order_release);
                         if (stop_.load()) break;
                         if (!text.empty()) last_text[job->id] = text;
                         else if (job->final) {
@@ -192,6 +211,12 @@ private:
 
                 if (count) {
                     for (auto& event : stream.accept(buffer.data(), count)) {
+                        // Once an inference call is running, a preview that is
+                        // already obsolete by the time it is consumed only adds
+                        // CPU load. Finals are always retained.
+                        if (!event.final && inference_busy_.load(std::memory_order_acquire)) {
+                            continue;
+                        }
                         std::lock_guard lock(queue_mutex);
                         jobs.push(std::move(event));
                         queue_cv.notify_one();
