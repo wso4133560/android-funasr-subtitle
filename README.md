@@ -32,7 +32,7 @@ pwsh -File scripts/bootstrap.ps1 -AcceptAndroidLicenses
 ```
 
 如果已经有 Android SDK，可以不运行 SDK 下载部分，设置 `ANDROID_HOME` 后直接构建。
-模型可从网络下载到项目的 `models/` 目录，随后通过手机界面导入：
+模型可从网络下载到项目的 `models/` 目录，构建脚本会自动打包进 APK：
 
 ```powershell
 pwsh -File scripts/download-models.ps1
@@ -51,7 +51,7 @@ APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。`scripts/build.ps1` 
 
 ## 使用
 
-1. 安装 APK，打开应用并导入两个模型。
+1. 安装 APK，打开应用，等待内置模型自动准备完成，无需手动导入。
 2. 选择 CPU 线程数、字幕字号和透明度。
 3. 点击“开始字幕”，允许录音、悬浮窗和系统音频捕获权限。
 4. 切换到视频或会议应用，字幕会显示在屏幕底部，可拖动调整位置。
@@ -68,3 +68,5 @@ playback capture 的应用不会提供音频，这是平台限制，不是识别
 | `fsmn-vad.gguf` | `1270f2559c495f4e7b6e739541151027d360761a3fda43fc147034f5719f5479` |
 
 第三方来源和许可证见 [NOTICE](NOTICE.md)。
+
+性能修复、真机实测与复现方法见 [性能验证](docs/PERFORMANCE.md)。

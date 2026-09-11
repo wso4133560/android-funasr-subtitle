@@ -22,6 +22,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Process;
+import android.os.SystemClock;
+import android.util.Log;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -117,10 +119,15 @@ public final class SubtitleService extends Service {
                         @Override public void onSubtitle(long id, boolean isFinal, String text,
                                                          double startSeconds, double endSeconds,
                                                          double computeMs) {
+                            long receivedNs = SystemClock.elapsedRealtimeNanos();
                             if (transcript != null) transcript.append(id, isFinal, text,
                                     startSeconds, endSeconds, computeMs);
                             mainHandler.post(() -> {
-                                if (overlay != null) overlay.update(text, isFinal, computeMs);
+                                if (overlay != null) {
+                                    overlay.update(text, isFinal, computeMs);
+                                    Log.i("FunASRPerf", "display id=" + id + " final=" + isFinal
+                                            + " dispatch_ms=" + (SystemClock.elapsedRealtimeNanos() - receivedNs) / 1_000_000.0);
+                                }
                             });
                         }
 

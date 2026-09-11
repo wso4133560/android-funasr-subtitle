@@ -1,0 +1,331 @@
+{
+  "date": "2026-09-11",
+  "device": "22041211AC",
+  "soc": "MT6895Z/TCZA",
+  "android_api": 34,
+  "apk_sha256": "75ed6b3438a216aee56400e89c023c1e60575f442d5b3e7bf2886ba024054f6c",
+  "native_sha256": "7ef73ddcd93083742016b62c9c9e17877d957590fd8d58a20a953cc28453c3d1",
+  "elf_build_id": "05ebcf2ba5c50900af5131b6c6d2304d27c2dd12",
+  "baseline_native_sha256": "b7974c97a7951316f7da6295d2f4357e69e90f9c72e364ceee158f20db5ec85b",
+  "baseline_en": [
+    {
+      "iteration": 0,
+      "audio_s": 11.0,
+      "threads": 4,
+      "asr_ms": 58606.555,
+      "rtf": 5.3279,
+      "vad_ms": 22.837,
+      "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+    }
+  ],
+  "baseline_zh": [
+    {
+      "iteration": 0,
+      "audio_s": 6.0,
+      "threads": 4,
+      "asr_ms": 33030.271,
+      "rtf": 5.505,
+      "vad_ms": 8.378,
+      "text": "我想问我在滨海新区有房。"
+    }
+  ],
+  "final_en": [
+    {
+      "iteration": 0,
+      "audio_s": 11.0,
+      "threads": 4,
+      "asr_ms": 1280.243,
+      "rtf": 0.1164,
+      "vad_ms": 8.113,
+      "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "iteration": 1,
+      "audio_s": 11.0,
+      "threads": 4,
+      "asr_ms": 1285.395,
+      "rtf": 0.1169,
+      "vad_ms": 8.067,
+      "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+    },
+    {
+      "iteration": 2,
+      "audio_s": 11.0,
+      "threads": 4,
+      "asr_ms": 1307.642,
+      "rtf": 0.1189,
+      "vad_ms": 8.861,
+      "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+    }
+  ],
+  "final_zh": [
+    {
+      "iteration": 0,
+      "audio_s": 6.0,
+      "threads": 4,
+      "asr_ms": 706.783,
+      "rtf": 0.1178,
+      "vad_ms": 10.088,
+      "text": "我想问我在滨海新区有房。"
+    },
+    {
+      "iteration": 1,
+      "audio_s": 6.0,
+      "threads": 4,
+      "asr_ms": 712.994,
+      "rtf": 0.1188,
+      "vad_ms": 7.901,
+      "text": "我想问我在滨海新区有房。"
+    },
+    {
+      "iteration": 2,
+      "audio_s": 6.0,
+      "threads": 4,
+      "asr_ms": 716.443,
+      "rtf": 0.1194,
+      "vad_ms": 15.342,
+      "text": "我想问我在滨海新区有房。"
+    }
+  ],
+  "threads": {
+    "2": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 2,
+        "asr_ms": 2934.489,
+        "rtf": 0.2668,
+        "vad_ms": 10.602,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 2,
+        "asr_ms": 2931.643,
+        "rtf": 0.2665,
+        "vad_ms": 10.696,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 2,
+        "asr_ms": 2899.765,
+        "rtf": 0.2636,
+        "vad_ms": 10.91,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ],
+    "4": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1677.334,
+        "rtf": 0.1525,
+        "vad_ms": 9.406,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1598.921,
+        "rtf": 0.1454,
+        "vad_ms": 10.892,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1585.079,
+        "rtf": 0.1441,
+        "vad_ms": 10.994,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ],
+    "6": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 6,
+        "asr_ms": 1859.039,
+        "rtf": 0.169,
+        "vad_ms": 9.191,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 6,
+        "asr_ms": 1871.922,
+        "rtf": 0.1702,
+        "vad_ms": 20.18,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 6,
+        "asr_ms": 1910.855,
+        "rtf": 0.1737,
+        "vad_ms": 10.878,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ],
+    "8": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 8,
+        "asr_ms": 2146.562,
+        "rtf": 0.1951,
+        "vad_ms": 10.336,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 8,
+        "asr_ms": 1830.811,
+        "rtf": 0.1664,
+        "vad_ms": 8.482,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 8,
+        "asr_ms": 2736.874,
+        "rtf": 0.2488,
+        "vad_ms": 10.051,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ]
+  },
+  "affinity_reverse_order": {
+    "ff": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1951.258,
+        "rtf": 0.1774,
+        "vad_ms": 21.826,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1938.696,
+        "rtf": 0.1762,
+        "vad_ms": 12.376,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1917.472,
+        "rtf": 0.1743,
+        "vad_ms": 21.776,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ],
+    "f0": [
+      {
+        "iteration": 0,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1912.347,
+        "rtf": 0.1738,
+        "vad_ms": 11.067,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 1,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1913.269,
+        "rtf": 0.1739,
+        "vad_ms": 11.157,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      },
+      {
+        "iteration": 2,
+        "audio_s": 11.0,
+        "threads": 4,
+        "asr_ms": 1913.01,
+        "rtf": 0.1739,
+        "vad_ms": 11.978,
+        "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+      }
+    ]
+  },
+  "english_wer": {
+    "reference_words": 22,
+    "hypothesis_words": 22,
+    "substitutions": 0,
+    "deletions": 0,
+    "insertions": 0,
+    "edit_distance": 0,
+    "wer": 0.0
+  },
+  "live_summary": {
+    "asr_jobs": 134,
+    "final_jobs": 23,
+    "compute_ms": {
+      "count": 134,
+      "p50": 1242.09,
+      "p95": 2713.81,
+      "max": 3836.17
+    },
+    "queue_ms": {
+      "count": 134,
+      "p50": 315.44,
+      "p95": 1100.19,
+      "max": 2460.55
+    },
+    "queued_to_decoded_ms": {
+      "count": 134,
+      "p50": 1510.26,
+      "p95": 3775.67,
+      "max": 5483.43
+    },
+    "rtf": {
+      "count": 134,
+      "p50": 0.237,
+      "p95": 0.34,
+      "max": 0.749
+    },
+    "callback_to_setText_ms": {
+      "count": 134,
+      "p50": 11.691,
+      "p95": 19.29,
+      "max": 23.525
+    },
+    "capture_drops": 0.0,
+    "final_drops": 0.0,
+    "note": "Queue starts after VAD segmentation. This does not measure sound-to-screen latency or words missed by VAD/ASR."
+  },
+  "live_transcript_rows": 196,
+  "live_final_rows": 38,
+  "live_audio_timeline_s": [
+    21.74,
+    303.9
+  ],
+  "live_metrics_time": [
+    "12:49:45.747",
+    "12:53:02.660"
+  ],
+  "limits": [
+    "Baseline n=1 per audio; optimized n=3.",
+    "CPU frequency, temperature and file cache were not controlled.",
+    "Live metrics exclude capture and VAD waiting, and do not measure physical display presentation.",
+    "WER covers only one 22-word English sample.",
+    "No 30-minute stability or power test."
+  ]
+}

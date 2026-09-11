@@ -36,7 +36,7 @@ Activity、ForegroundService、AudioRecord、JNI 工作线程和悬浮窗都使�
 ### M3：透明字幕与模型管理
 
 - TYPE_APPLICATION_OVERLAY 字幕栏支持透明度、字号和拖动。
-- 设置页可导入两个 GGUF 模型并验证文件大小与 SHA256。
+- APK 内置两个 GGUF 模型，首次启动自动准备并验证文件大小与 SHA256，无需手动导入。
 - 线程数和显示参数持久化；最终字幕保存为 TSV/SRT。
 - 所有组件保持在一个应用进程中。
 
@@ -52,3 +52,6 @@ Activity、ForegroundService、AudioRecord、JNI 工作线程和悬浮窗都使�
 
 M1-M3 可以在没有手机时完成编译和自动测试。M4 必须连接 Android 10+ ARM64 真机并由用户批准
 系统投屏和悬浮窗权限后才能判定。没有真机数据前，不宣称满足实时性能或准确率目标。
+
+2026-09-11：首台真机已完成编译优化、同音频对比和约 5 分钟 Bilibili 字幕运行验证。
+完整证据及尚未达成的延迟、长时间运行和准确率条件见 [性能验证](docs/PERFORMANCE.md)，M4 尚未全部完成。

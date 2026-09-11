@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
+#include <chrono>
 #include <deque>
 #include <optional>
 #include <string>
@@ -12,6 +13,7 @@ struct Segment {
     bool final=false;
     std::vector<float> audio;
     double start=0,end=0;
+    std::chrono::steady_clock::time_point queued_at{};
 };
 // Input frames are exactly 10 ms. Partial revisions replace, never append to, a sentence.
 class Segmenter {

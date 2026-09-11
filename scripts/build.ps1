@@ -59,4 +59,5 @@ try {
 $apkName = if ($Configuration -eq 'Release') { 'app-release-unsigned.apk' } else { 'app-debug.apk' }
 $apk = Join-Path $root "app\build\outputs\apk\$($Configuration.ToLowerInvariant())\$apkName"
 if (-not (Test-Path -LiteralPath $apk)) { throw "Expected APK was not created: $apk" }
+& (Join-Path $PSScriptRoot 'verify-native-build.ps1') -Configuration $Configuration -ApkPath $apk
 Write-Host "Build passed: $apk"

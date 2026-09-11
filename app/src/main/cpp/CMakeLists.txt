@@ -3,6 +3,11 @@ project(funasr_engine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# AGP cppFlags only reach C++ files. ggml's quantization and CPU dot-product
+# kernels are C, so an otherwise optimized debug APK was running those at -O0.
+# Apply optimization before adding ggml so both languages, including dependency
+# targets, receive it. Keep debug symbols and IEEE math semantics for profiling.
+add_compile_options(-O3)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(GGML_BACKEND_DL OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)

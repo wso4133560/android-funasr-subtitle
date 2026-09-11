@@ -3,6 +3,7 @@
 #include "segmenter.h"
 
 #include <jni.h>
+#include <android/log.h>
 
 #include <algorithm>
 #include <array>
@@ -78,7 +79,7 @@ class NativeSession {
     // alive between JNI calls so the capture path does not allocate on every read.
     std::vector<float> converted_;
     std::atomic<bool> stop_{false};
-    std::atomic<bool> inference_busy_{false};
+    std::atomic<size_t> capture_drops_{0};
     std::condition_variable audio_cv_;
     std::mutex audio_mutex_;
     std::thread worker_;
@@ -124,6 +125,7 @@ public:
         }
         const bool accepted = audio_.push(converted_.data(), converted_.size());
         if (accepted) audio_cv_.notify_one();
+        else capture_drops_.fetch_add(1, std::memory_order_relaxed);
         return accepted;
     }
 
@@ -150,31 +152,29 @@ private:
                     std::unordered_map<uint64_t, std::string> last_text;
                     while (!stop_.load(std::memory_order_acquire)) {
                         std::optional<Segment> job;
+                        size_t final_drops = 0;
                         {
                             std::unique_lock lock(queue_mutex);
                             queue_cv.wait_for(lock, std::chrono::milliseconds(50),
                                               [&] { return finished || !jobs.empty() || stop_.load(); });
                             if (finished || stop_.load()) break;
                             job = jobs.pop();
+                            final_drops = jobs.drops;
                         }
                         if (!job) continue;
-                        inference_busy_.store(true, std::memory_order_release);
                         const auto before = Clock::now();
-                        // A partial is a preview. Re-running the complete growing
-                        // utterance every second makes the preview cost grow with
-                        // sentence length. The final event still uses all samples.
-                        const std::vector<float>* input = &job->audio;
-                        std::vector<float> partial_audio;
-                        constexpr size_t max_partial_samples = 16000 * 6;
-                        if (!job->final && job->audio.size() > max_partial_samples) {
-                            partial_audio.assign(job->audio.end() - max_partial_samples,
-                                                 job->audio.end());
-                            input = &partial_audio;
-                        }
-                        auto text = engine.transcribe(*input);
+                        const double queue_ms = std::chrono::duration<double, std::milli>(
+                                before - job->queued_at).count();
+                        // Optimized kernels can process the full context. Keep the
+                        // sentence prefix in previews as well as final results.
+                        auto text = engine.transcribe(job->audio);
                         const double compute_ms = std::chrono::duration<double, std::milli>(
                                 Clock::now() - before).count();
-                        inference_busy_.store(false, std::memory_order_release);
+                        __android_log_print(ANDROID_LOG_INFO, "FunASRPerf",
+                                "asr id=%llu final=%d audio_ms=%.2f queue_ms=%.2f compute_ms=%.2f capture_drops=%zu final_drops=%zu",
+                                static_cast<unsigned long long>(job->id), job->final,
+                                job->audio.size() / 16.0, queue_ms, compute_ms,
+                                capture_drops_.load(std::memory_order_relaxed), final_drops);
                         if (stop_.load()) break;
                         if (!text.empty()) last_text[job->id] = text;
                         else if (job->final) {
@@ -211,13 +211,10 @@ private:
 
                 if (count) {
                     for (auto& event : stream.accept(buffer.data(), count)) {
-                        // Once an inference call is running, a preview that is
-                        // already obsolete by the time it is consumed only adds
-                        // CPU load. Finals are always retained.
-                        if (!event.final && inference_busy_.load(std::memory_order_acquire)) {
-                            continue;
-                        }
                         std::lock_guard lock(queue_mutex);
+                        event.queued_at = Clock::now();
+                        // SegmentQueue retains only the latest waiting preview and
+                        // prioritizes finals; no extra delay until the next preview.
                         jobs.push(std::move(event));
                         queue_cv.notify_one();
                     }
