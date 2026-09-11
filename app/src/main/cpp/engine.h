@@ -10,7 +10,8 @@ public:
     ~SenseVoice();
     std::string transcribe(const std::vector<float>& samples);
     std::string transcribe(const std::vector<float>& samples,
-                           AbortCallback abort_callback, void* abort_data);
+                           AbortCallback abort_callback, void* abort_data,
+                           bool* aborted = nullptr);
     SenseVoice(const SenseVoice&) = delete;
 private:
     struct Impl;

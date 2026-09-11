@@ -73,9 +73,10 @@ int main(int argc, char** argv) {
         if (argc == 7) {
             AbortAfter request{Timer::now(), std::stod(argv[6])};
             start = Timer::now();
-            auto aborted = asr.transcribe(samples, abort_after, &request);
+            bool did_abort = false;
+            auto aborted = asr.transcribe(samples, abort_after, &request, &did_abort);
             std::printf("abort_test_ms\t%.3f\tempty=%d\n", elapsed(start), aborted.empty());
-            if (!aborted.empty()) throw std::runtime_error("Abort test returned text");
+            if (!aborted.empty() || !did_abort) throw std::runtime_error("Abort test did not abort");
             // A cancelled graph must not poison the next graph on the same backend.
         }
         for (int i = 0; i < repeats; ++i) {

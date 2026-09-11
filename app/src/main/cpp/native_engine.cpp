@@ -164,6 +164,7 @@ private:
                     while (!stop_.load(std::memory_order_acquire)) {
                         std::optional<Segment> job;
                         size_t final_drops = 0;
+                        uint64_t preview_epoch = 0;
                         {
                             std::unique_lock lock(queue_mutex);
                             queue_cv.wait_for(lock, std::chrono::milliseconds(50),
@@ -171,23 +172,27 @@ private:
                             if (finished || stop_.load()) break;
                             job = jobs.pop();
                             final_drops = jobs.drops;
+                            if (!job) continue;
+                            // Capture the task's generation while holding the
+                            // same lock used to enqueue finals. A final that is
+                            // queued immediately after pop is then still seen
+                            // by the abort callback through final_epoch_.
+                            preview_epoch = job->final_epoch;
                         }
-                        if (!job) continue;
                         const auto before = Clock::now();
                         const double queue_ms = std::chrono::duration<double, std::milli>(
                                 before - job->queued_at).count();
                         // Optimized kernels can process the full context. Keep the
                         // sentence prefix in previews as well as final results.
-                        const uint64_t preview_epoch = final_epoch_.load(std::memory_order_acquire);
                         PreviewAbort abort_request{&final_epoch_, preview_epoch};
+                        bool inference_aborted = false;
                         auto text = job->final
                                 ? engine.transcribe(job->audio)
                                 : engine.transcribe(job->audio, abort_preview_if_final_waiting,
-                                                    &abort_request);
+                                                    &abort_request, &inference_aborted);
                         const double compute_ms = std::chrono::duration<double, std::milli>(
                                 Clock::now() - before).count();
-                        const bool cancelled = !job->final && text.empty() &&
-                                final_epoch_.load(std::memory_order_acquire) != preview_epoch;
+                        const bool cancelled = !job->final && inference_aborted;
                         __android_log_print(ANDROID_LOG_INFO, "FunASRPerf",
                                 "asr id=%llu final=%d cancelled=%d audio_ms=%.2f queue_ms=%.2f compute_ms=%.2f capture_drops=%zu final_drops=%zu",
                                 static_cast<unsigned long long>(job->id), job->final,

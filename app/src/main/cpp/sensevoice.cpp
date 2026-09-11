@@ -298,7 +298,8 @@ struct SenseVoice::Impl {
 
   }
   std::string run(const std::vector<float>& fb,int T, SenseVoice::AbortCallback abort_callback,
-                  void* abort_data){
+                  void* abort_data, bool* aborted){
+    if(aborted) *aborted=false;
     int N=nq+T; std::vector<float> inp((size_t)N*F);
     for(int i=0;i<nq;i++) memcpy(&inp[(size_t)i*F], &embed_f32[(size_t)qtok[i]*F], F*sizeof(float));
     memcpy(&inp[(size_t)nq*F], fb.data(), (size_t)T*F*sizeof(float));
@@ -330,7 +331,10 @@ struct SenseVoice::Impl {
     // cancellation condition.
     ggml_backend_cpu_set_abort_callback(graph_be.backend, nullptr, nullptr);
     trace_stage("[sensevoice] compute complete: status=%d",(int)compute_status);
-    if(compute_status==GGML_STATUS_ABORTED) return {};
+    if(compute_status==GGML_STATUS_ABORTED){
+      if(aborted) *aborted=true;
+      return {};
+    }
     if(compute_status!=GGML_STATUS_SUCCESS){throw std::runtime_error("SenseVoice compute failed");}
     std::vector<float> lg((size_t)V*N); ggml_backend_tensor_get(logits,lg.data(),0,ggml_nbytes(logits));
     std::vector<int> seg_ids; int prev=-1;   // greedy CTC: argmax per frame -> collapse -> drop blank
@@ -354,10 +358,11 @@ std::string SenseVoice::transcribe(const std::vector<float>& samples){
   return transcribe(samples, nullptr, nullptr);
 }
 std::string SenseVoice::transcribe(const std::vector<float>& samples,
-                                   AbortCallback abort_callback, void* abort_data){
+                                   AbortCallback abort_callback, void* abort_data,
+                                   bool* aborted){
   if(samples.size()<400) return {};
   if(samples.size()>16000*30) throw std::runtime_error("ASR window exceeds 30 seconds");
   int frames=0;
   auto fb=compute_fbank(samples,frames);
-  return impl_->run(fb,frames,abort_callback,abort_data);
+  return impl_->run(fb,frames,abort_callback,abort_data,aborted);
 }
